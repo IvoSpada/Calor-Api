@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -10,6 +9,7 @@ class ComidaUsuario extends Model
     use HasFactory;
 
     protected $table = 'comida_usuario';
+    public $timestamps = false;
 
     protected $fillable = [
         'usuario_id',
@@ -23,13 +23,11 @@ class ComidaUsuario extends Model
         'grasas',
     ];
 
-    // Relación: pertenece a un usuario
     public function usuario()
     {
         return $this->belongsTo(Usuario::class, 'usuario_id');
     }
 
-    // Relación: puede referenciar una comida planificada
     public function comidaDieta()
     {
         return $this->belongsTo(ComidaDieta::class, 'comida_dieta_id');

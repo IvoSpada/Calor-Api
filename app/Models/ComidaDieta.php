@@ -10,6 +10,8 @@ class ComidaDieta extends Model
     use HasFactory;
 
     protected $table = 'comida_dieta';
+    public $timestamps = false;
+
 
     protected $fillable = [
         'dieta_id',
