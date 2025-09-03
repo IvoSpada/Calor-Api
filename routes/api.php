@@ -5,6 +5,8 @@ use Illuminate\Support\Facades\Route;
 
 use App\Http\Controllers\UsuarioController;
 use App\Http\Controllers\DietaController;
+use App\Http\Controllers\ComidaDietaController;
+use App\Http\Controllers\ComidaUsuarioController;
 
 
 Route::get('/user', function (Request $request) {
@@ -14,3 +16,5 @@ Route::get('/user', function (Request $request) {
 // Rutas CRUD
 Route::apiResource('usuarios', UsuarioController::class);
 Route::apiResource('dietas', DietaController::class);
+Route::apiResource('comidas-dietas', ComidaDietaController::class);
+Route::apiResource('comidas-usuarios', ComidaUsuarioController::class);

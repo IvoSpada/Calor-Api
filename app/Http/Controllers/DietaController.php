@@ -4,78 +4,148 @@ namespace App\Http\Controllers;
 
 use App\Models\Dieta;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Validator;
 
 class DietaController extends Controller
 {
-    // GET /api/dietas
+    /**
+     * Mostrar todas las dietas
+     * GET /api/dietas
+     */
     public function index()
     {
-        // Opcional: traer también info del usuario con la dieta
         $dietas = Dieta::with('usuario')->get();
         return response()->json($dietas, 200);
     }
 
-    // POST /api/dietas
+    /**
+     * Crear una nueva dieta
+     * POST /api/dietas
+     */
     public function store(Request $request)
     {
-        $validated = $request->validate([
-            'usuario_id' => 'required|exists:usuario,id',
+        $validator = Validator::make($request->all(), [
+            'usuario_id'   => 'required|exists:usuario,id',
             'fecha_inicio' => 'required|date',
-            'fecha_fin' => 'required|date|after_or_equal:fecha_inicio',
-            'origen' => 'nullable|in:IA,manual',
-            'estado' => 'nullable|in:activa,finalizada',
+            'fecha_fin'    => 'required|date|after_or_equal:fecha_inicio',
+            'origen'       => 'nullable|in:IA,manual',
+            'estado'       => 'nullable|in:activa,finalizada',
         ]);
 
-        $dieta = Dieta::create($validated);
+        if ($validator->fails()) {
+            return response()->json([
+                'message' => 'Error en la validación de datos',
+                'status'  => 400,
+                'errors'  => $validator->errors()
+            ], 400);
+        }
 
-        return response()->json($dieta, 201);
+        $validated = $validator->validated();
+
+        try {
+            $dieta = Dieta::create($validated);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Error en la creación de la dieta',
+                'status'  => 500,
+                'error'   => $e->getMessage()
+            ], 500);
+        }
+
+        return response()->json([
+            'dieta'  => $dieta,
+            'status' => 201
+        ], 201);
     }
 
-    // GET /api/dietas/{id}
+    /**
+     * Mostrar una dieta específica
+     * GET /api/dietas/{id}
+     */
     public function show($id)
     {
         $dieta = Dieta::with('usuario', 'comidasDieta')->find($id);
 
         if (!$dieta) {
-            return response()->json(['message' => 'Dieta no encontrada'], 404);
+            return response()->json([
+                'message' => 'Dieta no encontrada'
+            ], 404);
         }
 
         return response()->json($dieta, 200);
     }
 
-    // PUT/PATCH /api/dietas/{id}
+    /**
+     * Actualizar una dieta
+     * PUT/PATCH /api/dietas/{id}
+     */
     public function update(Request $request, $id)
     {
         $dieta = Dieta::find($id);
 
         if (!$dieta) {
-            return response()->json(['message' => 'Dieta no encontrada'], 404);
+            return response()->json([
+                'message' => 'Dieta no encontrada'
+            ], 404);
         }
 
-        $validated = $request->validate([
-            'usuario_id' => 'sometimes|required|exists:usuario,id',
+        $validator = Validator::make($request->all(), [
+            'usuario_id'   => 'sometimes|required|exists:usuario,id',
             'fecha_inicio' => 'sometimes|required|date',
-            'fecha_fin' => 'sometimes|required|date|after_or_equal:fecha_inicio',
-            'origen' => 'nullable|in:IA,manual',
-            'estado' => 'nullable|in:activa,finalizada',
+            'fecha_fin'    => 'sometimes|required|date|after_or_equal:fecha_inicio',
+            'origen'       => 'nullable|in:IA,manual',
+            'estado'       => 'nullable|in:activa,finalizada'
         ]);
 
-        $dieta->update($validated);
+        if ($validator->fails()) {
+            return response()->json([
+                'message' => 'Error en la validación de datos',
+                'status'  => 400,
+                'errors'  => $validator->errors()
+            ], 400);
+        }
+
+        $validated = $validator->validated();
+
+        try {
+            $dieta->update($validated);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Error al actualizar la dieta',
+                'status'  => 500,
+                'error'   => $e->getMessage()
+            ], 500);
+        }
 
         return response()->json($dieta, 200);
     }
 
-    // DELETE /api/dietas/{id}
+    /**
+     * Eliminar una dieta
+     * DELETE /api/dietas/{id}
+     */
     public function destroy($id)
     {
         $dieta = Dieta::find($id);
 
         if (!$dieta) {
-            return response()->json(['message' => 'Dieta no encontrada'], 404);
+            return response()->json([
+                'message' => 'Dieta no encontrada'
+            ], 404);
         }
 
-        $dieta->delete();
+        try {
+            $dieta->delete();
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Error al eliminar la dieta',
+                'status'  => 500,
+                'error'   => $e->getMessage()
+            ], 500);
+        }
 
-        return response()->json(['message' => 'Dieta eliminada correctamente'], 200);
+        return response()->json([
+            'message' => 'Dieta eliminada correctamente'
+        ], 200);
     }
 }

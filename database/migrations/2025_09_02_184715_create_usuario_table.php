@@ -9,6 +9,7 @@ return new class extends Migration {
         Schema::create('usuario', function (Blueprint $table) {
             $table->id();
             $table->string('nombre', 100);
+            $table->string('password');
             $table->string('email', 100)->unique();
             $table->decimal('peso', 5, 2)->nullable();   // en kg
             $table->decimal('altura', 5, 2)->nullable(); // en cm

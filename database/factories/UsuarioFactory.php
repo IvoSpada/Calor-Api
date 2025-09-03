@@ -18,6 +18,7 @@ class UsuarioFactory extends Factory
             'altura'   => $this->faker->randomFloat(2, 150, 200),
             'edad'     => $this->faker->numberBetween(18, 70),
             'objetivo' => $this->faker->randomElement(['perder_peso','mantener','ganar_peso']),
+            'password' => $this->faker->password()
         ];
     }
 }

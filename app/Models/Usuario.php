@@ -20,6 +20,7 @@ class Usuario extends Model
         'altura',
         'edad',
         'objetivo',
+        'password'
     ];
 
     // Un usuario puede tener muchas dietas
