@@ -3,24 +3,49 @@
 namespace App\Http\Controllers;
 
 use App\Models\ComidaDieta;
+use App\Models\Dieta; // Importar Dieta
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Auth; // <-- Asegúrate de importar Auth
 
 class ComidaDietaController extends Controller
 {
     /**
-     * Mostrar todas las comidas planificadas
-     * GET /api/comidas-dieta
+     * Mostrar todas las comidas planificadas DEL USUARIO AUTENTICADO
+     * GET /api/comidas-dietas
      */
-    public function index()
+    public function index(Request $request)
     {
-        $comidas = ComidaDieta::with('dieta')->get();
+        // FIX DE SEGURIDAD:
+        // Filtramos las comidas basándonos en las dietas que pertenecen al usuario
+        $usuarioId = $request->user()->id;
+
+        $query = ComidaDieta::whereHas('dieta', function ($q) use ($usuarioId) {
+            $q->where('usuario_id', $usuarioId);
+        });
+
+        // Si el frontend pide las comidas de UNA dieta específica (para el Dashboard)
+        if ($request->has('dieta_id')) {
+            // Validamos que esa dieta_id también pertenezca al usuario
+            $dieta = Dieta::where('id', $request->dieta_id)
+                          ->where('usuario_id', $usuarioId)
+                          ->first();
+            
+            if ($dieta) {
+                $query->where('dieta_id', $request->dieta_id);
+            } else {
+                // Si pide un ID de dieta que no es suyo, devolvemos vacío
+                return response()->json([], 200); 
+            }
+        }
+
+        $comidas = $query->with('dieta')->get();
         return response()->json($comidas, 200);
     }
 
     /**
      * Crear una nueva comida planificada
-     * POST /api/comidas-dieta
+     * POST /api/comidas-dietas
      */
     public function store(Request $request)
     {
@@ -43,6 +68,19 @@ class ComidaDietaController extends Controller
             ], 400);
         }
 
+        // FIX DE SEGURIDAD: Validar que la dieta_id pertenezca al usuario autenticado
+        $usuarioId = Auth::id();
+        $dieta = Dieta::where('id', $request->dieta_id)
+                      ->where('usuario_id', $usuarioId)
+                      ->first();
+
+        if (!$dieta) {
+            return response()->json([
+                'message' => 'Acceso no autorizado: la dieta no pertenece a este usuario.',
+                'status'  => 403,
+            ], 403);
+        }
+
         $validated = $validator->validated();
 
         try {
@@ -63,11 +101,18 @@ class ComidaDietaController extends Controller
 
     /**
      * Mostrar una comida planificada específica
-     * GET /api/comidas-dieta/{id}
+     * GET /api/comidas-dietas/{id}
      */
     public function show($id)
     {
-        $comida = ComidaDieta::with('dieta', 'comidasUsuario')->find($id);
+        // FIX DE SEGURIDAD:
+        $usuarioId = Auth::id();
+        $comida = ComidaDieta::with('dieta', 'comidasUsuario')
+                            ->where('id', $id)
+                            ->whereHas('dieta', function ($q) use ($usuarioId) {
+                                $q->where('usuario_id', $usuarioId);
+                            })
+                            ->first();
 
         if (!$comida) {
             return response()->json([
@@ -80,11 +125,17 @@ class ComidaDietaController extends Controller
 
     /**
      * Actualizar una comida planificada
-     * PUT/PATCH /api/comidas-dieta/{id}
+     * PUT/PATCH /api/comidas-dietas/{id}
      */
     public function update(Request $request, $id)
     {
-        $comida = ComidaDieta::find($id);
+        // FIX DE SEGURIDAD:
+        $usuarioId = Auth::id();
+        $comida = ComidaDieta::where('id', $id)
+                            ->whereHas('dieta', function ($q) use ($usuarioId) {
+                                $q->where('usuario_id', $usuarioId);
+                            })
+                            ->first();
 
         if (!$comida) {
             return response()->json([
@@ -128,11 +179,17 @@ class ComidaDietaController extends Controller
 
     /**
      * Eliminar una comida planificada
-     * DELETE /api/comidas-dieta/{id}
+     * DELETE /api/comidas-dietas/{id}
      */
     public function destroy($id)
     {
-        $comida = ComidaDieta::find($id);
+        // FIX DE SEGURIDAD:
+        $usuarioId = Auth::id();
+        $comida = ComidaDieta::where('id', $id)
+                            ->whereHas('dieta', function ($q) use ($usuarioId) {
+                                $q->where('usuario_id', $usuarioId);
+                            })
+                            ->first();
 
         if (!$comida) {
             return response()->json([

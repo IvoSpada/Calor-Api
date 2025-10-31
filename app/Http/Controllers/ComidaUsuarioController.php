@@ -10,26 +10,50 @@ class ComidaUsuarioController extends Controller
 {
     /**
      * Mostrar todas las comidas consumidas por usuarios
-     * GET /api/comidas-usuario
+     * GET /api/comidas-usuarios
      */
-    public function index()
+    public function index(Request $request) // <-- 1. Añadido Request $request
     {
-        $comidasUsuario = ComidaUsuario::with('usuario', 'comidaDieta')->get();
+        // --- INICIO DE LA CORRECCIÓN DE SEGURIDAD ---
+
+        // Obtenemos el ID del usuario autenticado (desde el token auth:sanctum)
+        $usuarioId = $request->user()->id;
+
+        // Construimos la consulta base, filtrando SIEMPRE por el usuario
+        $query = ComidaUsuario::where('usuario_id', $usuarioId);
+
+        // Si el frontend envía un ?fecha=... (como en tu Dashboard)
+        if ($request->has('fecha')) {
+            $query->whereDate('fecha', $request->fecha);
+        }
+
+        $comidasUsuario = $query->with('usuario', 'comidaDieta')->get();
+        
+        // --- FIN DE LA CORRECCIÓN DE SEGURIDAD ---
+
         return response()->json($comidasUsuario, 200);
     }
 
     /**
      * Crear un registro de comida consumida por usuario
-     * POST /api/comidas-usuario
+     * POST /api/comidas-usuarios
      */
     public function store(Request $request)
     {
+        // Este validador fue corregido en nuestra conversación anterior
+        // para que coincida con tu migración (fecha, opcion, etc.)
         $validator = Validator::make($request->all(), [
-            'usuario_id'    => 'required|exists:usuario,id',
+            'usuario_id'      => 'required|exists:usuario,id',
             'comida_dieta_id' => 'required|exists:comida_dieta,id',
-            'fecha_consumo' => 'required|date',
-            'cantidad'      => 'required|numeric|min:1'
+            'fecha'           => 'required|date',
+            'opcion'          => 'required|in:planificada,alternativa',
+            'descripcion'     => 'required|string',
+            'calorias'        => 'required|integer',
+            'proteinas'       => 'nullable|numeric',
+            'carbohidratos'   => 'nullable|numeric',
+            'grasas'          => 'nullable|numeric',
         ]);
+
 
         if ($validator->fails()) {
             return response()->json([
@@ -38,6 +62,18 @@ class ComidaUsuarioController extends Controller
                 'errors'  => $validator->errors()
             ], 400);
         }
+
+        // --- CORRECCIÓN DE SEGURIDAD (STORE) ---
+        // Nos aseguramos de que el usuario_id en el payload
+        // sea el mismo que el del usuario autenticado.
+        if ($request->usuario_id != $request->user()->id) {
+             return response()->json([
+                'message' => 'No autorizado',
+                'status'  => 403,
+            ], 403);
+        }
+        // --- FIN DE LA CORRECCIÓN ---
+
 
         $validated = $validator->validated();
 
@@ -59,40 +95,55 @@ class ComidaUsuarioController extends Controller
 
     /**
      * Mostrar una comida consumida específica
-     * GET /api/comidas-usuario/{id}
+     * GET /api/comidas-usuarios/{id}
      */
-    public function show($id)
+    public function show(Request $request, $id) // <-- Añadido Request
     {
-        $comidaUsuario = ComidaUsuario::with('usuario', 'comidaDieta')->find($id);
+        // --- CORRECCIÓN DE SEGURIDAD (SHOW) ---
+        // Nos aseguramos de que el registro pertenezca al usuario autenticado
+        $comidaUsuario = ComidaUsuario::with('usuario', 'comidaDieta')
+                            ->where('id', $id)
+                            ->where('usuario_id', $request->user()->id) // Filtro de seguridad
+                            ->first();
 
         if (!$comidaUsuario) {
             return response()->json([
                 'message' => 'Registro no encontrado'
             ], 404);
         }
+        // --- FIN DE LA CORRECCIÓN ---
 
         return response()->json($comidaUsuario, 200);
     }
 
     /**
      * Actualizar un registro de comida consumida
-     * PUT/PATCH /api/comidas-usuario/{id}
+     * PUT/PATCH /api/comidas-usuarios/{id}
      */
     public function update(Request $request, $id)
     {
-        $comidaUsuario = ComidaUsuario::find($id);
+        // --- CORRECCIÓN DE SEGURIDAD (UPDATE) ---
+        $comidaUsuario = ComidaUsuario::where('id', $id)
+                                    ->where('usuario_id', $request->user()->id) // Filtro de seguridad
+                                    ->first();
 
         if (!$comidaUsuario) {
             return response()->json([
                 'message' => 'Registro no encontrado'
             ], 404);
         }
+        // --- FIN DE LA CORRECCIÓN ---
 
         $validator = Validator::make($request->all(), [
-            'usuario_id'    => 'sometimes|required|exists:usuario,id',
+            'usuario_id'      => 'sometimes|required|exists:usuario,id',
             'comida_dieta_id' => 'sometimes|required|exists:comida_dieta,id',
-            'fecha_consumo' => 'sometimes|required|date',
-            'cantidad'      => 'sometimes|required|numeric|min:1'
+            'fecha'           => 'sometimes|required|date',
+            'opcion'          => 'sometimes|required|in:planificada,alternativa',
+            'descripcion'     => 'sometimes|required|string',
+            'calorias'        => 'sometimes|required|integer',
+            'proteinas'       => 'nullable|numeric',
+            'carbohidratos'   => 'nullable|numeric',
+            'grasas'          => 'nullable|numeric',
         ]);
 
         if ($validator->fails()) {
@@ -120,17 +171,21 @@ class ComidaUsuarioController extends Controller
 
     /**
      * Eliminar un registro de comida consumida
-     * DELETE /api/comidas-usuario/{id}
+     * DELETE /api/comidas-usuarios/{id}
      */
-    public function destroy($id)
+    public function destroy(Request $request, $id) // <-- Añadido Request
     {
-        $comidaUsuario = ComidaUsuario::find($id);
+        // --- CORRECCIÓN DE SEGURIDAD (DESTROY) ---
+         $comidaUsuario = ComidaUsuario::where('id', $id)
+                                    ->where('usuario_id', $request->user()->id) // Filtro de seguridad
+                                    ->first();
 
         if (!$comidaUsuario) {
             return response()->json([
                 'message' => 'Registro no encontrado'
             ], 404);
         }
+        // --- FIN DE LA CORRECCIÓN ---
 
         try {
             $comidaUsuario->delete();

@@ -5,16 +5,23 @@ namespace App\Http\Controllers;
 use App\Models\Dieta;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Auth; // Importar Auth
 
 class DietaController extends Controller
 {
     /**
-     * Mostrar todas las dietas
+     * Mostrar todas las dietas DEL USUARIO AUTENTICADO
      * GET /api/dietas
      */
-    public function index()
+    public function index(Request $request)
     {
-        $dietas = Dieta::with('usuario')->get();
+        // FIX DE SEGURIDAD:
+        // Filtramos las dietas por el usuario_id del usuario autenticado.
+        $usuarioId = $request->user()->id;
+        
+        $query = Dieta::where('usuario_id', $usuarioId);
+
+        $dietas = $query->with('usuario')->get();
         return response()->json($dietas, 200);
     }
 
@@ -32,6 +39,11 @@ class DietaController extends Controller
             'estado'       => 'nullable|in:activa,finalizada',
         ]);
 
+        // FIX DE SEGURIDAD: Asegurarse que el usuario que crea la dieta sea él mismo
+        if ($request->usuario_id != Auth::id()) {
+             return response()->json(['message' => 'Acceso no autorizado'], 403);
+        }
+
         if ($validator->fails()) {
             return response()->json([
                 'message' => 'Error en la validación de datos',
@@ -41,6 +53,11 @@ class DietaController extends Controller
         }
 
         $validated = $validator->validated();
+        
+        // Asegurar que el estado sea 'activa' si no se provee
+        if (!isset($validated['estado'])) {
+            $validated['estado'] = 'activa';
+        }
 
         try {
             $dieta = Dieta::create($validated);
@@ -64,7 +81,12 @@ class DietaController extends Controller
      */
     public function show($id)
     {
-        $dieta = Dieta::with('usuario', 'comidasDieta')->find($id);
+        // FIX DE SEGURIDAD: Asegurarnos que la dieta pertenezca al usuario
+        $usuarioId = Auth::id();
+        $dieta = Dieta::with('usuario', 'comidasDieta')
+                      ->where('id', $id)
+                      ->where('usuario_id', $usuarioId)
+                      ->first();
 
         if (!$dieta) {
             return response()->json([
@@ -81,7 +103,9 @@ class DietaController extends Controller
      */
     public function update(Request $request, $id)
     {
-        $dieta = Dieta::find($id);
+        // FIX DE SEGURIDAD: Asegurarnos que la dieta pertenezca al usuario
+        $usuarioId = Auth::id();
+        $dieta = Dieta::where('id', $id)->where('usuario_id', $usuarioId)->first();
 
         if (!$dieta) {
             return response()->json([
@@ -126,7 +150,9 @@ class DietaController extends Controller
      */
     public function destroy($id)
     {
-        $dieta = Dieta::find($id);
+        // FIX DE SEGURIDAD: Asegurarnos que la dieta pertenezca al usuario
+        $usuarioId = Auth::id();
+        $dieta = Dieta::where('id', $id)->where('usuario_id', $usuarioId)->first();
 
         if (!$dieta) {
             return response()->json([
