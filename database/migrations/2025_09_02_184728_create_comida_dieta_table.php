@@ -11,7 +11,8 @@ return new class extends Migration {
             $table->id();
             $table->foreignId('dieta_id')->constrained('dieta')->onDelete('cascade');
             $table->date('fecha');
-            $table->enum('tipo', ['desayuno','almuerzo','cena','snack']);
+            // ESTA ES LA LÍNEA CLAVE CORREGIDA
+            $table->enum('tipo', ['desayuno','almuerzo','cena','snack', 'merienda', 'colacion', 'media mañana', 'media tarde', 'post cena', 'postre']);
             $table->text('descripcion');
             $table->integer('calorias');
             $table->decimal('proteinas', 6, 2)->nullable();

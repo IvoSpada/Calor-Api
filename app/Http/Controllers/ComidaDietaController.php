@@ -52,7 +52,7 @@ class ComidaDietaController extends Controller
         $validator = Validator::make($request->all(), [
             'dieta_id'      => 'required|exists:dieta,id',
             'fecha'         => 'required|date',
-            'tipo'          => 'required|in:desayuno,almuerzo,cena,snack',
+            'tipo'          => 'required|in:desayuno,almuerzo,cena,snack,merienda,colacion,media mañana,media tarde,post cena,postre',
             'descripcion'   => 'required|string',
             'calorias'      => 'required|integer|min:0',
             'proteinas'     => 'nullable|numeric|min:0',
