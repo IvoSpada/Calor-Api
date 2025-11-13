@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Usuario;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Hash; // <-- 1. AÑADIR ESTE IMPORT
 
 class UsuarioController extends Controller
 {
@@ -33,7 +34,12 @@ class UsuarioController extends Controller
             'altura'   => 'nullable|numeric|min:0',
             'peso'     => 'nullable|numeric|min:0',
             'genero'   => 'nullable|in:masculino,femenino,otro',
-            'objetivo' => 'required|string|in:perder_peso,mantener,ganar_peso'
+            'objetivo' => 'required|string|in:perder_peso,mantener,ganar_peso',
+            
+            // --- NUEVOS CAMPOS AÑADIDOS ---
+            'patologias' => 'nullable|string',
+            'ejercicio'  => 'nullable|string',
+            'premium'    => 'nullable|integer|in:0,1,2', // 0=No premium, 1=Premium, 2=Premium++
         ]);
 
         // Si falla la validación, devolvemos errores
@@ -50,6 +56,12 @@ class UsuarioController extends Controller
 
         // Hasheamos la contraseña antes de guardar
         $validated['password'] = bcrypt($validated['password']);
+
+        // --- Asignar valor por defecto si 'premium' no se envía ---
+        // Si no se proporciona 'premium', asumimos 0 (no premium)
+        if (!isset($validated['premium'])) {
+            $validated['premium'] = 0;
+        }
 
         try {
             // Crear el usuario
@@ -104,13 +116,19 @@ class UsuarioController extends Controller
         // Validación de datos, campos opcionales
         $validated = $request->validate([
             'nombre'   => 'sometimes|required|string|max:100',
-            'email'    => 'sometimes|required|string|email|max:100|unique:usuario,email,' . $usuario->id,
+            // Asegúrate que la tabla es 'usuario' y no 'usuarios'
+            'email'    => 'sometimes|required|string|email|max:100|unique:usuario,email,' . $usuario->id, 
             'password' => 'sometimes|required|string|min:6',
             'edad'     => 'sometimes|required|integer|min:0',
             'altura'   => 'nullable|numeric|min:0',
             'peso'     => 'nullable|numeric|min:0',
             'genero'   => 'nullable|in:masculino,femenino,otro',
-            'objetivo' => 'sometimes|required|string|in:perder_peso,mantener,ganar_peso'
+            'objetivo' => 'sometimes|required|string|in:perder_peso,mantener,ganar_peso',
+
+            // --- NUEVOS CAMPOS AÑADIDOS ---
+            'patologias' => 'nullable|string',
+            'ejercicio'  => 'nullable|string',
+            'premium'    => 'nullable|integer|in:0,1,2',
         ]);
 
         // Si viene password, hashearlo

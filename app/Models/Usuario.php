@@ -22,6 +22,12 @@ class Usuario extends Authenticatable
         'edad',
         'objetivo',
         'password',
+        'genero', // Añadido genero que estaba en el controlador pero no aquí
+        
+        // --- NUEVOS CAMPOS AÑADIDOS ---
+        'patologias',
+        'ejercicio',
+        'premium',
     ];
 
     protected $hidden = [

@@ -13,8 +13,16 @@ return new class extends Migration {
             $table->string('email', 100)->unique();
             $table->decimal('peso', 5, 2)->nullable();   // en kg
             $table->decimal('altura', 5, 2)->nullable(); // en cm
-            $table->integer('edad')->nullable();
-            $table->enum('objetivo', ['perder_peso','mantener','ganar_peso'])->nullable();
+            
+            // --- Campos actualizados (de nullable a requerido por el controller) ---
+            $table->integer('edad');
+            $table->enum('objetivo', ['perder_peso','mantener','ganar_peso']);
+
+            // --- NUEVOS CAMPOS AÑADIDOS ---
+            $table->enum('genero', ['masculino', 'femenino', 'otro'])->nullable();
+            $table->text('patologias')->nullable();
+            $table->text('ejercicio')->nullable();
+            $table->tinyInteger('premium')->default(0); // 0=No, 1=Premium, 2=Premium++
         });
     }
 
